@@ -57,26 +57,16 @@ namespace missile_command
 		}
 		const char* label = LABELS[index];
 		DrawText(label, x - MeasureText(label, 16) / 2, y + 38, 16, SKYBLUE);
-
-		if (battery.alive) {
-
-			for (int i = 0; i < battery.ammo; i++)
-			{
-				int ammo_x = x - 24 + (i % 5) * 11;
-				int ammo_y = y + 10 + (i / 5) * 12;
-				DrawRectangle(ammo_x, ammo_y, 3, 8, WHITE);
-				DrawPixel(ammo_x + 1, ammo_y - 1, WHITE);
-			}
-
-			if (battery.ammo == 0)
-			{
-				const char* state = "OUT";
-				DrawText(state, x - MeasureText(state, 18) / 2, y + 12, 18, RED);
-			}
+		for (int i = 0; i < battery.ammo; i++)
+		{
+			int ammo_x = x - 24 + (i % 5) * 11;
+			int ammo_y = y + 10 + (i / 5) * 12;
+			DrawRectangle(ammo_x, ammo_y, 3, 8, WHITE);
+			DrawPixel(ammo_x + 1, ammo_y - 1, WHITE);
 		}
-		else {
-
-			const char* state = "DETRUITE";
+		if (battery.ammo == 0)
+		{
+			const char* state = battery.alive ? "OUT" : "DETRUITE";
 			DrawText(state, x - MeasureText(state, 18) / 2, y + 12, 18, RED);
 		}
 	}
@@ -103,8 +93,20 @@ namespace missile_command
 			{
 				continue;
 			}
-			DrawLineV(visual(threat.origin), visual(threat.position), RED);
-			DrawCircleV(visual(threat.position), 2, YELLOW);
+			if (threat.kind == EnemyKind::smart_bomb)
+			{
+				int x = static_cast<int>(threat.position.x);
+				int y = static_cast<int>(threat.position.y);
+				DrawLine(x, y - 7, x + 5, y, WHITE);
+				DrawLine(x + 5, y, x, y + 7, WHITE);
+				DrawLine(x, y + 7, x - 5, y, WHITE);
+				DrawLine(x - 5, y, x, y - 7, WHITE);
+			}
+			else
+			{
+				DrawLineV(visual(threat.origin), visual(threat.position), RED);
+				DrawCircleV(visual(threat.position), 2, YELLOW);
+			}
 		}
 		for (const Aircraft& aircraft : missiles.aircraft)
 		{
@@ -170,6 +172,8 @@ namespace missile_command
 		DrawText(text, 355, 18, 24, WHITE);
 		std::snprintf(text, sizeof(text), "VAGUE %02d", game.wave.number);
 		DrawText(text, 740, 18, 22, YELLOW);
+		std::snprintf(text, sizeof(text), "VILLES BONUS %d", game.bonus_cities);
+		DrawText(text, 24, 47, 15, GRAY);
 		DrawLine(24, 69, SCREEN_WIDTH - 24, 69, DARKGRAY);
 		centered_text("SOURIS : VISER    Q / S / D : TIRER    P : PAUSE", 665, 17, LIGHTGRAY);
 		centered_text("Chaque batterie dispose de 10 tirs par vague.", 693, 14, GRAY);
@@ -213,6 +217,8 @@ namespace missile_command
 			DrawRectangle(210, 235, 540, 190, {0, 0, 0, 240});
 			DrawRectangleLines(210, 235, 540, 190, SKYBLUE);
 			centered_text("VAGUE TERMINEE", 263, 30, YELLOW);
+			std::snprintf(text, sizeof(text), "VILLES ET MUNITIONS : +%d", game.wave.bonus_points);
+			centered_text(text, 323, 23, WHITE);
 			centered_text("Rechargement des trois batteries...", 376, 18, SKYBLUE);
 		}
 		if (game.capacity_warning || input_overflow)

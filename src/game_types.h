@@ -33,7 +33,8 @@ namespace missile_command {
 
     enum class EnemyKind {
         ballistic,
-        splitter
+        splitter,
+        smart_bomb
     };
 
     enum class AicraftKind {
@@ -152,6 +153,7 @@ namespace missile_command {
         float spawn_timer;
         bool aircraft_sent;
         float bonus_timer;
+        int bonus_points;
     };
 
     struct GameState {
@@ -164,8 +166,12 @@ namespace missile_command {
         float spawn_timer;
         Wave wave;
         int score;
+        int bonus_cities;
+        int bonus_next_score;
+
         std::uint32_t seed;
 
+        int ticks;
         bool capacity_warning;
         Vec2 aim;
     };

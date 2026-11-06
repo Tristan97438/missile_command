@@ -14,10 +14,27 @@ namespace missile_command {
         game = {};
         game.phase = Phase::title;
         game.aim = {SCREEN_WIDTH*0.5f,SCREEN_HEIGHT*0.4f};
+        game.bonus_next_score = 10'000;
         game.seed = seed;
         defenses_reset(game.defenses);
         missiles_reset(game.missiles,seed);
         explosions_reset(game.explosions);
+    }
+
+    int game_multiplier(const GameState& game) {
+
+        int multiplier = 1 + (game.wave.number -1)/2;
+        return multiplier > 6 ? 6 : multiplier;
+    }
+
+    static void awards_points(GameState& game,int points) {
+
+        game.score += points;
+        while (game.score > game.bonus_next_score) {
+
+            game.bonus_cities ++;
+            game.bonus_next_score += 10'000;
+        }
     }
 
     static  SpawnOrders scheduled_wave(GameState& game) {
@@ -34,6 +51,10 @@ namespace missile_command {
             spawn.kind = EnemyKind::ballistic;
             if (game.wave.number >= 3 && game.wave.launched % 5 ==3) {
                 spawn.kind = EnemyKind::splitter;
+            }
+
+            if (game.wave.number >= 6 && game.wave.launched % 7 ==5) {
+                spawn.kind = EnemyKind::smart_bomb;
             }
 
             game.wave.remaining--;
@@ -93,6 +114,7 @@ namespace missile_command {
 
             return;
         }
+        game.ticks ++;
         game.aim = {clamp(input.aim.x,8,SCREEN_WIDTH -8),clamp(input.aim.y,80,SCREEN_HEIGHT - 42)};
 
         if (game.phase == Phase::wave_bonus) {
@@ -100,6 +122,7 @@ namespace missile_command {
             game.wave.bonus_timer += TICK_SECONDS;
             if (game.wave.bonus_timer >= 3.0f) {
 
+                game.bonus_cities -=defenses_restore_cities(game.defenses,game.bonus_cities);
                 begin_wave(game);
             }
             return;
@@ -123,11 +146,16 @@ namespace missile_command {
         bool all_blasts_added = explosions_add(game.explosions,events);
         game.capacity_warning = game.capacity_warning ||events.capacity_reached || !all_blasts_added;
 
-        game.score += events.base_points;
+        awards_points(game,events.base_points * game_multiplier(game));
 
         if (game.wave.remaining == 0 && missiles_empty(game.missiles) &&
             explosions_empty(game.explosions))
         {
+            game.wave.bonus_points = (defenses_living_cities(game.defenses) * 100 + defenses_ammo(game.defenses) * 5) * game_multiplier(game);
+
+            awards_points(game,game.wave.bonus_points);
+
+
             game.wave.bonus_timer = 0;
             game.phase = Phase::wave_bonus;
         }

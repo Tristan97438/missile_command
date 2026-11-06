@@ -30,8 +30,28 @@ namespace missile_command {
 
         defenses_new_wave(defenses);
 
+    }
 
+    int defenses_restore_cities(Defenses &defenses,int available) {
 
+        int used = 0;
+        for ( City& city : defenses.cities) {
+
+            if (!city.alive && used < available) {
+
+                city.alive = true;
+                used++;
+            }
+
+        }
+        return used;
+    }
+    int defenses_ammo(const Defenses &defenses) {
+        int count = 0;
+        for (const Battery& battery : defenses.batteries) {
+            count += battery.ammo;
+        }
+        return count;
     }
     int defenses_living_cities(const Defenses& defenses)
     {

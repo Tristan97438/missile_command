@@ -226,7 +226,30 @@ namespace missile_command {
             }
         }
     }
+    static Vec2 smart_step(const Threat& threat, const Explosions& explosions)
+    {
+        Vec2 velocity = velocity_toward(threat.position, threat.target, threat.speed);
+        Vec2 next = {threat.position.x + velocity.x * TICK_SECONDS,
+            threat.position.y + velocity.y * TICK_SECONDS};
 
+        for (const Blast& blast : explosions.items)
+        {
+            if (!blast.active)
+            {
+                continue;
+            }
+            float distance = distance_squared(next, blast.position);
+            float warning_radius = blast.radius + 8;
+            if (distance < warning_radius * warning_radius &&
+                distance > blast.radius * blast.radius * 0.35f)
+            {
+                float direction = next.x < blast.position.x ? -1.0f : 1.0f;
+                next.x = clamp(next.x + direction * 130.0f * TICK_SECONDS, 8, SCREEN_WIDTH - 8);
+                break;
+            }
+        }
+        return next;
+    }
     static void advanced_threats(Missiles &missiles,
         const Defenses& defenses,
         const Explosions& explosions,
@@ -249,10 +272,16 @@ namespace missile_command {
             Vec2 next = {threat.position.x +threat.velocity.x * TICK_SECONDS,
                          threat.position.y +threat.velocity.y * TICK_SECONDS};
 
-            if (touches_blast(threat.position, next, explosions, 1.0f)) {
+            if (threat.kind == EnemyKind::smart_bomb) {
+                next = smart_step(threat, explosions);
+            }
+            if (touches_blast(threat.position,
+                next,
+                explosions,
+                threat.kind == EnemyKind::smart_bomb ? 4.0f : 1.0f)) {
 
                 threat.active = false;
-                events.base_points += 25;
+                events.base_points += threat.kind == EnemyKind::smart_bomb ? 125 : 25;
                 add_blast(events,next,false);
                 continue;
             }
